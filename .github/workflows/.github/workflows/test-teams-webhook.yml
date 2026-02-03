@@ -1,0 +1,39 @@
+name: Test Teams Webhook
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send test message to Teams
+        env:
+          TEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
+        run: |
+          if [ -z "${TEAMS_WEBHOOK}" ]; then
+            echo "ERROR: TEAMS_WEBHOOK secret not set"
+            exit 1
+          fi
+
+          payload='{
+            "@type":"MessageCard",
+            "@context":"http://schema.org/extensions",
+            "summary":"Test notification",
+            "themeColor":"0076D7",
+            "title":"GitHub → Teams test",
+            "sections":[
+              { "activityTitle":"This is a test message from GitHub Actions",
+                "facts":[
+                  {"name":"Repo","value":"'"${GITHUB_REPOSITORY}"'"},
+                  {"name":"Triggered by","value":"'"${GITHUB_ACTOR}"'"}
+                ],
+                "text":"If you see this in Teams the webhook is working.",
+                "markdown": true
+              }
+            ]
+          }'
+
+          curl -s -S -H "Content-Type: application/json" -d "$payload" "$TEAMS_WEBHOOK" -o /tmp/teams_resp.txt || true
+          echo "Teams response:"
+          cat /tmp/teams_resp.txt || true
